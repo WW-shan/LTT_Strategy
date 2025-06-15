@@ -1,0 +1,17 @@
+import os
+
+LOGLEVEL = os.getenv('LOGLEVEL', 'INFO').upper()
+BITGET_API_KEY = os.getenv('BITGET_API_KEY', '')
+BITGET_API_SECRET = os.getenv('BITGET_API_SECRET', '')
+TG_BOT_TOKEN = os.getenv('TG_BOT_TOKEN', '')
+TG_CHAT_ID = os.getenv('TG_CHAT_ID', '')
+SYMBOLS = ['BTC/USDT:USDT', 'ETH/USDT:USDT']
+TIMEFRAMES = ['1h', '4h', '1d']
+DC_PERIOD = 28
+MAX_WORKERS = int(os.getenv('MAX_WORKERS', 10))
+MA_FAST = 5
+MA_MID = 10
+MA_SLOW = 20
+MA_LONG = 200
+MAX_MSG_LEN = 4096
+SUBSCRIBE_PASSWORD = ""

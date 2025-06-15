@@ -3,10 +3,10 @@ import schedule
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
-from Strategy.config import LOGLEVEL, TIMEFRAMES, MAX_WORKERS, DC_PERIOD, SYMBOLS, MA_LONG, MAX_MSG_LEN
-from Strategy.exchange_utils import get_data, get_all_usdt_swap_symbols
-from Strategy.signal import check_signal
-from Strategy.notifier import send_to_allowed_users, monitor_new_users, send_telegram_message, set_bot_commands
+from config import LOGLEVEL, TIMEFRAMES, MAX_WORKERS, DC_PERIOD, SYMBOLS, MA_LONG, MAX_MSG_LEN
+from exchange_utils import get_data, get_all_usdt_swap_symbols
+from signal import check_signal
+from notifier import send_to_allowed_users, monitor_new_users, send_telegram_message, set_bot_commands
 logging.basicConfig(
     level=getattr(logging, LOGLEVEL),
     format="%(asctime)s %(levelname)s %(message)s",

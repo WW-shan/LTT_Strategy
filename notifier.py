@@ -3,7 +3,7 @@ import logging
 import time
 import os
 import threading
-from Strategy.config import TG_BOT_TOKEN, TG_CHAT_ID, SUBSCRIBE_PASSWORD
+from config import TG_BOT_TOKEN, TG_CHAT_ID, SUBSCRIBE_PASSWORD
 
 USER_FILE = "Strategy/allowed_users.txt"
 file_lock = threading.Lock()

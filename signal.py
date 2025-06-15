@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 import os
-from Strategy.config import DC_PERIOD, MA_FAST, MA_MID, MA_SLOW, MA_LONG
+from config import DC_PERIOD, MA_FAST, MA_MID, MA_SLOW, MA_LONG
 
 def calculate_indicators(df):
     df['highest'] = df['high'].rolling(DC_PERIOD).max()
