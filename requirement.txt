@@ -1,0 +1,5 @@
+ccxt==1.104.89
+pandas==1.5.3
+numpy==1.24.3
+requests==2.31.0
+schedule==1.1.0
