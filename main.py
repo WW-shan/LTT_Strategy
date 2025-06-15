@@ -11,7 +11,7 @@ logging.basicConfig(
     level=getattr(logging, LOGLEVEL),
     format="%(asctime)s %(levelname)s %(message)s",
     handlers=[
-        logging.FileHandler("Strategy/tmp/strategy.log"),
+        logging.FileHandler("tmp/strategy.log"),
         logging.StreamHandler()
     ]
 )

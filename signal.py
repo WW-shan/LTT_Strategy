@@ -86,14 +86,14 @@ def find_can_biao_xiu(df):
         return None, None, None
 
 def get_last_can_signal(symbol_short):
-    fname = f"Strategy/tmp/last_can_signal_{symbol_short}.txt"
+    fname = f"tmp/last_can_signal_{symbol_short}.txt"
     if os.path.exists(fname):
         with open(fname, "r") as f:
             return f.read().strip()
     return None
 
 def set_last_can_signal(symbol_short, can_time):
-    fname = f"Strategy/tmp/last_can_signal_{symbol_short}.txt"
+    fname = f"tmp/last_can_signal_{symbol_short}.txt"
     with open(fname, "w") as f:
         f.write(str(can_time))
 

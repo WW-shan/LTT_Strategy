@@ -5,7 +5,7 @@ import os
 import threading
 from config import TG_BOT_TOKEN, TG_CHAT_ID, SUBSCRIBE_PASSWORD
 
-USER_FILE = "Strategy/allowed_users.txt"
+USER_FILE = "allowed_users.txt"
 file_lock = threading.Lock()
 
 def safe_write_user(user_id):

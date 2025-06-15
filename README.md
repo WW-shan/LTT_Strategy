@@ -25,7 +25,7 @@ LTT_Strategy旨在通过技术指标和自定义信号（如海龟交易法、RS
 ## 项目结构
 
 ```
-Strategy/
+LTT_Strategy/
 ├── config.py              # 配置文件，包含API密钥、参数设置等
 ├── exchange_utils.py      # 交易所数据接口封装，获取K线数据等
 ├── main.py                # 主程序，调度任务、信号处理和推送
