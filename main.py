@@ -1,4 +1,5 @@
 import logging
+import os
 import schedule
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -15,6 +16,23 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+
+def ensure_dir_exists(directory):
+    """确保目录存在，不存在则创建"""
+    os.makedirs(directory, exist_ok=True)
+
+def ensure_file_exists(file_path):
+    """确保文件存在，不存在则创建空文件"""
+    if not os.path.exists(file_path):
+        parent_dir = os.path.dirname(file_path)
+        if parent_dir:
+            os.makedirs(parent_dir, exist_ok=True)
+        with open(file_path, 'w', encoding='utf-8') as f:
+            pass
+
+if __name__ == "__main__":
+    ensure_dir_exists("tmp")
+    ensure_file_exists("allowed_users.txt")
 
 threading.Thread(target=monitor_new_users, daemon=True).start()
 
