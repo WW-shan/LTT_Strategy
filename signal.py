@@ -43,10 +43,10 @@ def find_can_biao_xiu(df):
                 continue
             if any(np.isnan([df['close'].iloc[i], df['open'].iloc[i], df['high'].iloc[i-1]])):
                 continue
-            # 参：阳线，收盘价高于前一根K线最高价，且上涨趋势
+            # 参：阳线，收盘价高于DC通道上轨，且上涨趋势
             if (
                 df['close'].iloc[i] > df['open'].iloc[i] and
-                df['close'].iloc[i] > df['high'].iloc[i-1] and
+                df['close'].iloc[i] > df['highest'] and
                 is_strong_uptrend(df, i)
             ):
                 logging.info(f"找到参: idx={i}, close={df['close'].iloc[i]}, open={df['open'].iloc[i]}, high_pre={df['high'].iloc[i-1]}")
