@@ -74,7 +74,7 @@ def job():
 set_bot_commands()
 logging.info("策略开始")
 send_telegram_message("策略开始")
-schedule.every(16).minutes.do(job)
+schedule.every(60).minutes.do(job)
 job()
 while True:
     schedule.run_pending()

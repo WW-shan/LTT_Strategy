@@ -314,7 +314,7 @@ def monitor_new_users():
                         safe_write_user(user_id)
                         known_users.add(user_id)
                         send_telegram_message(f"添加新用户：{username} (ID: {user_id})")
-                        send_message(user_id, "欢迎关注本机器人，您已成功订阅推送！")
+                        send_message(user_id, "欢迎关注本机器人，您已成功订阅推送！\n使用/settings查看当前设置")
                     pending_users.pop(user_id, None)
                 elif text.lower() == "/unsubscribe":
                     # 未订阅用户退订提示
