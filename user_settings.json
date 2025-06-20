@@ -1,0 +1,30 @@
+{
+    "5582320122": {
+        "enabled_timeframes": [
+            "1h",
+            "4h",
+            "1d"
+        ],
+        "enabled_signals": [
+            "rsi6_extreme",
+            "turtle_buy",
+            "turtle_sell",
+            "can_biao_xiu",
+            "five_down"
+        ]
+    },
+    "1231093599": {
+        "enabled_timeframes": [
+            "1h",
+            "4h",
+            "1d"
+        ],
+        "enabled_signals": [
+            "rsi6_extreme",
+            "turtle_buy",
+            "turtle_sell",
+            "can_biao_xiu",
+            "five_down"
+        ]
+    }
+}

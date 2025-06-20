@@ -46,7 +46,7 @@ def find_can_biao_xiu(df):
             # 参：阳线，收盘价高于DC通道上轨，且上涨趋势
             if (
                 df['close'].iloc[i] > df['open'].iloc[i] and
-                df['close'].iloc[i] > df['highest'] and
+                df['close'].iloc[i] > df['highest'].iloc[i] and
                 is_strong_uptrend(df, i)
             ):
                 logging.info(f"找到参: idx={i}, close={df['close'].iloc[i]}, open={df['open'].iloc[i]}, high_pre={df['high'].iloc[i-1]}")
@@ -117,8 +117,8 @@ def check_signal(symbol, timeframe, df, extra_signal=False):
             return signals
 
         # RSI6极值
-        if (last_row['rsi6'] > 95 or last_row['rsi6'] < 5):
-            logging.warning(f"{symbol_short} {timeframe} 检测到极值RSI6: {last_row['rsi6']}")
+        if (last_row['rsi6'] > 92 or last_row['rsi6'] < 8):
+            logging.info(f"{symbol_short} {timeframe} 检测到极值RSI6: {last_row['rsi6']}")
             signals.append({
                 "type": "rsi6_extreme",
                 "symbol": symbol_short,

@@ -15,3 +15,8 @@ MA_SLOW = 20
 MA_LONG = 200
 MAX_MSG_LEN = 4096
 SUBSCRIBE_PASSWORD = "12345678"
+USER_SETTINGS_FILE = "user_settings.json"
+DEFAULT_USER_SETTINGS = {
+    "enabled_timeframes": ["1h", "4h", "1d"],  # 默认全部启用
+    "enabled_signals": ["rsi6_extreme", "turtle_buy", "turtle_sell", "can_biao_xiu", "five_down"]  # 默认启用信号类型
+}
