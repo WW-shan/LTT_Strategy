@@ -339,10 +339,10 @@ def escape_markdown(text):
 
 def set_bot_commands():
     commands = [
-        {"command": "unsubscribe", "description": "退订推送"},
         {"command": "settings", "description": "查看当前通知设置"},
         {"command": "set_timeframes", "description": "设置接收时间周期(逗号分隔)"},
         {"command": "set_signals", "description": "设置接收信号类型(逗号分隔)"},
+        {"command": "unsubscribe", "description": "退订推送"},
         {"command": "adduser", "description": "管理员：手动添加用户"},
         {"command": "removeuser", "description": "管理员：手动移除用户"},
     ]
