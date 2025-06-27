@@ -1,8 +1,6 @@
 import os
 
 LOGLEVEL = os.getenv('LOGLEVEL', 'INFO').upper()
-BITGET_API_KEY = os.getenv('BITGET_API_KEY', '')
-BITGET_API_SECRET = os.getenv('BITGET_API_SECRET', '')
 TG_BOT_TOKEN = os.getenv('TG_BOT_TOKEN', '')
 TG_CHAT_ID = os.getenv('TG_CHAT_ID', '')
 SYMBOLS = ['BTC/USDT:USDT', 'ETH/USDT:USDT']

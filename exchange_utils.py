@@ -1,11 +1,8 @@
 import ccxt
 import pandas as pd
 import logging
-from config import BITGET_API_KEY, BITGET_API_SECRET
 
 exchange = ccxt.bitget({
-    'apiKey': BITGET_API_KEY,
-    'secret': BITGET_API_SECRET,
     'options': {'defaultType': 'swap'},
 })
 
