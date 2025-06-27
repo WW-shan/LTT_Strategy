@@ -128,14 +128,22 @@ def send_to_allowed_users(msg):
 
 def handle_signals(sig, rsi6_signals, can_biao_xiu_signals):
     users = load_allowed_users()
+    rsi6_collected = False
+    can_biao_xiu_collected = False
+    
     for user_id in users:
-        if sig["type"] == "rsi6_extreme" and should_send_signal(user_id, sig):
-            rsi6_signals.append(sig)
-        elif sig["type"] == "can_biao_xiu" and should_send_signal(user_id, sig):
-            can_biao_xiu_signals.append(sig)
-        elif should_send_signal(user_id, sig):
-            msg = format_signal(sig)
-            send_message(user_id, msg)
+        if should_send_signal(user_id, sig):
+            if sig["type"] == "rsi6_extreme" and not rsi6_collected:
+                rsi6_signals.append(sig)
+                rsi6_collected = True
+                break
+            elif sig["type"] == "can_biao_xiu" and not can_biao_xiu_collected:
+                can_biao_xiu_signals.append(sig)
+                can_biao_xiu_collected = True
+                break
+            else:
+                msg = format_signal(sig)
+                send_message(user_id, msg)
 
 def format_signal(sig):
     """格式化信号为可读消息"""

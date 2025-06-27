@@ -13,6 +13,7 @@ env/
 
 # 数据库文件（如果你不想上传txt数据库文件，可以忽略它）
 *.txt
+!requirements.txt
 *.json
 
 # IDE和编辑器相关文件
