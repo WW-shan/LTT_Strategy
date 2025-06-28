@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 from config import LOGLEVEL, TIMEFRAMES, MAX_WORKERS, DC_PERIOD, SYMBOLS, MA_LONG, USER_SETTINGS_FILE
 from exchange_utils import get_data, get_all_usdt_swap_symbols
-from signal import check_signal
+from strategy_sig import check_signal
 from notifier import monitor_new_users, send_telegram_message, set_bot_commands, rsi6_summary, handle_signals
 from utils import ensure_dir_exists, ensure_file_exists
 
