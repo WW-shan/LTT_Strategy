@@ -175,7 +175,9 @@ def check_signal(symbol, timeframe, df, extra_signal=False):
                         "can_idx": can_idx,
                         "biao_idx": biao_idx,
                         "xiu_idx": xiu_idx,
-                        "can_time": can_time
+                        "can_time": can_time,
+                        "biao_time": str(df['timestamp'].iloc[biao_idx]) if biao_idx is not None else None,
+                        "xiu_time": str(df['timestamp'].iloc[xiu_idx]) if xiu_idx is not None else None,
                     })
                     set_last_can_signal(symbol_short, can_time)
 
@@ -193,5 +195,4 @@ def check_signal(symbol, timeframe, df, extra_signal=False):
     except Exception as e:
         logging.error(f"{symbol} {timeframe} 检测信号异常: {e}", exc_info=True)
         return signals
-
     return signals

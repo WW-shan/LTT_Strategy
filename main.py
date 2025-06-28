@@ -1,5 +1,4 @@
 import logging
-import os
 import schedule
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -7,7 +6,7 @@ import threading
 from config import LOGLEVEL, TIMEFRAMES, MAX_WORKERS, DC_PERIOD, SYMBOLS, MA_LONG, USER_SETTINGS_FILE
 from exchange_utils import get_data, get_all_usdt_swap_symbols
 from signal import check_signal
-from notifier import monitor_new_users, send_telegram_message, set_bot_commands, rsi6_summary, send_can_biao_xiu_signals, send_to_allowed_users, handle_signals
+from notifier import monitor_new_users, send_telegram_message, set_bot_commands, rsi6_summary, handle_signals
 from utils import ensure_dir_exists, ensure_file_exists
 
 logging.basicConfig(
@@ -28,7 +27,6 @@ if __name__ == "__main__":
 def job():
     all_symbols = get_all_usdt_swap_symbols()
     rsi6_signals = []
-    can_biao_xiu_signals = []
     df_cache = {}
 
     def fetch_data(symbol, timeframe):
@@ -62,14 +60,12 @@ def job():
                 if not signals:
                     continue
                 for sig in signals:
-                    handle_signals(sig, rsi6_signals=rsi6_signals, can_biao_xiu_signals=can_biao_xiu_signals)
+                    handle_signals(sig, rsi6_signals=rsi6_signals)
 
             except Exception as e:
                 logging.error(f"处理{symbol} {timeframe}异常: {e}", exc_info=True)
     if rsi6_signals:
         rsi6_summary(rsi6_signals)
-    if can_biao_xiu_signals:
-        send_can_biao_xiu_signals(can_biao_xiu_signals, df_cache)
 
 set_bot_commands()
 logging.info("策略开始")

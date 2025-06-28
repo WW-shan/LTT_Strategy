@@ -4,7 +4,6 @@ import time
 import os
 import threading
 import json
-from datetime import datetime
 from config import TG_BOT_TOKEN, TG_CHAT_ID, SUBSCRIBE_PASSWORD, DEFAULT_USER_SETTINGS, USER_SETTINGS_FILE, TIMEFRAMES, MAX_MSG_LEN
 from utils import ensure_file_exists
 
@@ -126,20 +125,14 @@ def send_to_allowed_users(msg):
     for user_id in users:
         send_message(user_id, msg)
 
-def handle_signals(sig, rsi6_signals, can_biao_xiu_signals):
+def handle_signals(sig, rsi6_signals):
     users = load_allowed_users()
     rsi6_collected = False
-    can_biao_xiu_collected = False
-    
     for user_id in users:
         if should_send_signal(user_id, sig):
             if sig["type"] == "rsi6_extreme" and not rsi6_collected:
                 rsi6_signals.append(sig)
                 rsi6_collected = True
-                break
-            elif sig["type"] == "can_biao_xiu" and not can_biao_xiu_collected:
-                can_biao_xiu_signals.append(sig)
-                can_biao_xiu_collected = True
                 break
             else:
                 msg = format_signal(sig)
@@ -178,6 +171,12 @@ def format_signal(sig):
             f"值 : {sig['rsi6']:.2f}\n"
             f"时间 : {sig['time']}\n"
         )
+    elif sig["type"] == "can_biao_xiu":
+        msg = f"[参标修] {sig['symbol']}\n"
+        msg += f"参信号时间: {sig.get('can_time', '-')}\n"
+        msg += f"标信号时间: {sig.get('biao_time', '-')}\n"
+        msg += f"修信号时间: {sig.get('xiu_time', '-')}\n"
+        return msg
     else:
         logging.warning(f"未知信号类型: {sig['type']}")
         return f"未知信号类型: {sig['type']}"
@@ -190,25 +189,6 @@ def rsi6_summary(signals):
     for s in signals:
         table += f"{s['symbol']:<20}{s['timeframe']:<8}{s['rsi6']:<8.2f}\n"
     send_long_telegram_message(f"RSI6极值信号汇总：\n```\n{table}```")
-        
-    # 汇总推送参标修信号
-def send_can_biao_xiu_signals(signals, df_cache):
-    table = f"{'交易对':<8}{'信号':<4}{'时间':<10}\n"
-    table += f"{'-'*10}{'-'*4}{'-'*16}\n"
-    for sig in signals:
-        df = df_cache.get((sig['symbol'], sig['timeframe']))
-        if df is None:
-            continue
-        can_time = str(df['timestamp'].iloc[sig['can_idx']])[:10]
-        table += f"{sig['symbol']:<10}{'参':<4}{can_time:<16}\n"
-        if sig['biao_idx'] is not None:
-            biao_time = str(df['timestamp'].iloc[sig['biao_idx']])[:10]
-            table += f"{sig['symbol']:<10}{'标':<4}{biao_time:<16}\n"
-        if sig['xiu_idx'] is not None:
-            xiu_time = str(df['timestamp'].iloc[sig['xiu_idx']])[:10]
-            table += f"{sig['symbol']:<10}{'修':<4}{xiu_time:<16}\n"
-    msg = f"参的低点是标的压力位\n标的低点是修的压力位\n修的低点是最强支撑位\n\n日线级别参标修信号汇总：\n```\n{table}```"
-    send_long_telegram_message(msg)
 
 def monitor_new_users():
     """轮询监听新用户消息，处理订阅、退订、管理员命令"""
