@@ -117,7 +117,7 @@ def check_signal(symbol, timeframe, df, extra_signal=False):
             return signals
 
         # RSI6极值
-        if (last_row['rsi6'] > 92 or last_row['rsi6'] < 8):
+        if (last_row['rsi6'] > 95 or last_row['rsi6'] < 5):
             logging.info(f"{symbol_short} {timeframe} 检测到极值RSI6: {last_row['rsi6']}")
             signals.append({
                 "type": "rsi6_extreme",
