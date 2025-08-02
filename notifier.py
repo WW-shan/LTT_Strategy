@@ -235,6 +235,46 @@ def send_message(chat_id, text):
         logging.error(f"发送消息异常给{chat_id}: {e}")
         return False
 
+def send_plain_message(chat_id, text):
+    """发送纯文本消息（不使用Markdown解析）"""
+    if not TG_BOT_TOKEN or not chat_id:
+        logging.error("TG_BOT_TOKEN 或 chat_id 未设置")
+        return False
+    url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage"
+    
+    data = {
+        "chat_id": chat_id,
+        "text": text
+        # 不设置 parse_mode，默认为纯文本
+    }
+    
+    try:
+        resp = requests.post(url, data=data, timeout=10)
+        if resp.status_code != 200:
+            response_data = resp.json()
+            error_code = response_data.get("error_code", 0)
+            description = response_data.get("description", "")
+            
+            # 检查是否是用户屏蔽机器人的错误
+            if error_code == 403 and ("bot was blocked by the user" in description or "user is deactivated" in description):
+                logging.warning(f"用户 {chat_id} 已屏蔽机器人，自动移除该用户")
+                # 自动移除被屏蔽的用户
+                if remove_user(str(chat_id)):
+                    logging.info(f"已自动移除被屏蔽的用户: {chat_id}")
+                    # 通知管理员
+                    if str(chat_id) != str(TG_CHAT_ID):
+                        send_telegram_message(f"⚠️ 用户 {chat_id} 已屏蔽机器人，已自动移除订阅")
+                else:
+                    logging.error(f"移除被屏蔽用户 {chat_id} 失败")
+                return False
+            else:
+                logging.error(f"发送纯文本消息失败给{chat_id}: {resp.text}")
+                return False
+        return True
+    except Exception as e:
+        logging.error(f"发送纯文本消息异常给{chat_id}: {e}")
+        return False
+
 def send_telegram_message(text):
     """发送消息给管理员"""
     send_message(TG_CHAT_ID, text)
@@ -333,10 +373,10 @@ def send_pinned_message_to_all(msg):
     logging.info(f"置顶消息发送完成: 成功 {success_count}/{len(users)}, 失败 {failed_count}, 耗时: {elapsed_time:.2f}秒")
 
 def send_pinned_message_async(chat_id, text):
-    """异步发送置顶消息"""
+    """异步发送置顶消息（使用纯文本模式，不转义）"""
     try:
-        # 先发送普通消息
-        message_sent = send_message(chat_id, text)
+        # 发送纯文本消息（不使用Markdown解析）
+        message_sent = send_plain_message(chat_id, text)
         if not message_sent:
             return False
         
