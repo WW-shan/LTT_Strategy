@@ -64,6 +64,75 @@ def load_allowed_users():
         with open(USER_FILE, "r") as f:
             return set(line.strip() for line in f if line.strip())
 
+def get_user_info(user_id):
+    """获取用户的Telegram信息"""
+    try:
+        url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/getChat"
+        params = {"chat_id": user_id}
+        resp = requests.get(url, params=params, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get("ok"):
+                chat = data.get("result", {})
+                username = chat.get("username", "无用户名")
+                first_name = chat.get("first_name", "")
+                last_name = chat.get("last_name", "")
+                full_name = f"{first_name} {last_name}".strip() or "无姓名"
+                return {
+                    "username": username,
+                    "full_name": full_name,
+                    "user_id": user_id
+                }
+    except Exception as e:
+        logging.error(f"获取用户{user_id}信息失败: {e}")
+    
+    return {
+        "username": "获取失败",
+        "full_name": "获取失败", 
+        "user_id": user_id
+    }
+
+def list_all_users():
+    """列出所有订阅用户的信息"""
+    users = list(load_allowed_users())
+    if not users:
+        return "📋 当前没有订阅用户"
+    
+    msg = f"📋 *订阅用户列表* \\(共{len(users)}人\\)\n\n"
+    
+    for i, user_id in enumerate(users, 1):
+        user_info = get_user_info(user_id)
+        settings = get_user_settings(user_id)
+        
+        # 格式化信号类型，使其更简洁
+        timeframes = settings.get('enabled_timeframes', [])
+        signals = settings.get('enabled_signals', [])
+        
+        # 简化信号名称显示
+        signal_names = []
+        for signal in signals:
+            if signal == "rsi6_extreme":
+                signal_names.append("RSI6")
+            elif signal == "turtle_buy":
+                signal_names.append("🐢买")
+            elif signal == "turtle_sell":
+                signal_names.append("🐢卖")
+            elif signal == "can_biao_xiu":
+                signal_names.append("📊参标修")
+            elif signal == "five_down":
+                signal_names.append("📉五连阴")
+            else:
+                signal_names.append(signal)
+        
+        msg += f"*{i}\\. {user_info['full_name']}* \\(@{user_info['username']}\\)\n"
+        msg += f"```\n"
+        msg += f"用户ID  : {user_id}\n"
+        msg += f"周期    : {', '.join(timeframes) if timeframes else '未设置'}\n"
+        msg += f"信号    : {', '.join(signal_names) if signal_names else '未设置'}\n"
+        msg += f"```\n"
+    
+    return msg
+
 def remove_user(user_id):
     """从文件中安全移除用户"""
     with file_lock:
@@ -237,6 +306,10 @@ def monitor_new_users():
                         else:
                             send_message(user_id, f"用户 {target_id} 不存在")
                         continue
+                    elif text == "/listusers":
+                        user_list_msg = list_all_users()
+                        send_message(user_id, user_list_msg)
+                        continue
 
                 # 已授权用户不需重复订阅
                 if user_id in known_users:
@@ -333,6 +406,7 @@ def set_bot_commands():
         {"command": "unsubscribe", "description": "退订推送"},
         {"command": "adduser", "description": "管理员：手动添加用户"},
         {"command": "removeuser", "description": "管理员：手动移除用户"},
+        {"command": "listusers", "description": "管理员：查看所有订阅用户"},
     ]
     url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/setMyCommands"
     data = {"commands": str(commands).replace("'", '"')}
