@@ -92,6 +92,41 @@ def get_user_info(user_id):
         "user_id": user_id
     }
 
+def check_and_clean_blocked_users():
+    """检查并清理被屏蔽的用户"""
+    users = list(load_allowed_users())
+    blocked_users = []
+    
+    for user_id in users:
+        try:
+            # 尝试发送一个测试消息（使用getChat API更轻量）
+            url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/getChat"
+            params = {"chat_id": user_id}
+            resp = requests.get(url, params=params, timeout=10)
+            
+            if resp.status_code != 200:
+                response_data = resp.json()
+                error_code = response_data.get("error_code", 0)
+                description = response_data.get("description", "")
+                
+                # 检查是否是用户屏蔽或账户被停用
+                if error_code == 403 and ("bot was blocked by the user" in description or 
+                                         "user is deactivated" in description or
+                                         "Forbidden: user not found" in description):
+                    blocked_users.append(user_id)
+                    logging.info(f"发现被屏蔽/停用的用户: {user_id}")
+        except Exception as e:
+            logging.error(f"检查用户 {user_id} 状态异常: {e}")
+    
+    # 移除被屏蔽的用户
+    removed_count = 0
+    for user_id in blocked_users:
+        if remove_user(user_id):
+            removed_count += 1
+            logging.info(f"已移除被屏蔽的用户: {user_id}")
+    
+    return removed_count, len(blocked_users)
+
 def list_all_users():
     """列出所有订阅用户的信息"""
     users = list(load_allowed_users())
@@ -156,7 +191,7 @@ def send_message(chat_id, text):
     """统一发送消息接口，含异常处理"""
     if not TG_BOT_TOKEN or not chat_id:
         logging.error("TG_BOT_TOKEN 或 chat_id 未设置")
-        return
+        return False
     url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage"
     
     # 检查是否是用户列表消息，如果是则使用纯文本模式
@@ -175,9 +210,29 @@ def send_message(chat_id, text):
     try:
         resp = requests.post(url, data=data, timeout=10)
         if resp.status_code != 200:
-            logging.error(f"发送消息失败给{chat_id}: {resp.text}")
+            response_data = resp.json()
+            error_code = response_data.get("error_code", 0)
+            description = response_data.get("description", "")
+            
+            # 检查是否是用户屏蔽机器人的错误
+            if error_code == 403 and ("bot was blocked by the user" in description or "user is deactivated" in description):
+                logging.warning(f"用户 {chat_id} 已屏蔽机器人，自动移除该用户")
+                # 自动移除被屏蔽的用户
+                if remove_user(str(chat_id)):
+                    logging.info(f"已自动移除被屏蔽的用户: {chat_id}")
+                    # 通知管理员
+                    if str(chat_id) != str(TG_CHAT_ID):
+                        send_telegram_message(f"⚠️ 用户 {chat_id} 已屏蔽机器人，已自动移除订阅")
+                else:
+                    logging.error(f"移除被屏蔽用户 {chat_id} 失败")
+                return False
+            else:
+                logging.error(f"发送消息失败给{chat_id}: {resp.text}")
+                return False
+        return True
     except Exception as e:
         logging.error(f"发送消息异常给{chat_id}: {e}")
+        return False
 
 def send_telegram_message(text):
     """发送消息给管理员"""
@@ -318,6 +373,12 @@ def monitor_new_users():
                         user_list_msg = list_all_users()
                         send_message(user_id, user_list_msg)
                         continue
+                    elif text == "/cleanblocked":
+                        removed_count, total_blocked = check_and_clean_blocked_users()
+                        # 重新加载用户列表以同步
+                        known_users = load_allowed_users()
+                        send_message(user_id, f"🧹 清理完成！\n发现被屏蔽用户: {total_blocked} 人\n成功移除: {removed_count} 人")
+                        continue
 
                 # 已授权用户不需重复订阅
                 if user_id in known_users:
@@ -415,6 +476,7 @@ def set_bot_commands():
         {"command": "adduser", "description": "管理员：手动添加用户"},
         {"command": "removeuser", "description": "管理员：手动移除用户"},
         {"command": "listusers", "description": "管理员：查看所有订阅用户"},
+        {"command": "cleanblocked", "description": "管理员：清理被屏蔽的用户"},
     ]
     url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/setMyCommands"
     data = {"commands": str(commands).replace("'", '"')}
