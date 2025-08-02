@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 from config import LOGLEVEL, TIMEFRAMES, MAX_WORKERS, DC_PERIOD, SYMBOLS, MA_LONG, USER_SETTINGS_FILE
 from exchange_utils import get_data, get_all_usdt_swap_symbols
-from strategy_sig import check_signal
+from strategy_sig import check_signal, check_turtle_signal, check_can_biao_xiu_signal
 from notifier import monitor_new_users, send_telegram_message, set_bot_commands, rsi6_summary, handle_signals
 from utils import ensure_dir_exists, ensure_file_exists
 
@@ -56,10 +56,20 @@ def job():
                     continue
 
                 extra_signal = symbol in SYMBOLS
+                
+                # 1. 检测其他指标信号（使用Bitget数据）
                 signals = check_signal(symbol, timeframe, df, extra_signal=extra_signal)
-                if not signals:
-                    continue
                 for sig in signals:
+                    handle_signals(sig, rsi6_signals=rsi6_signals)
+                
+                # 2. 检测海龟交易法信号（严格使用Yahoo Finance数据）
+                turtle_signals = check_turtle_signal(symbol, timeframe)
+                for sig in turtle_signals:
+                    handle_signals(sig, rsi6_signals=rsi6_signals)
+                
+                # 3. 检测参标修信号（使用Yahoo Finance数据，仅日线）
+                can_biao_xiu_signals = check_can_biao_xiu_signal(symbol, timeframe)
+                for sig in can_biao_xiu_signals:
                     handle_signals(sig, rsi6_signals=rsi6_signals)
 
             except Exception as e:

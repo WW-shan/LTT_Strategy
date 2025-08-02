@@ -267,8 +267,8 @@ def send_to_allowed_users(msg):
     success_count = 0
     failed_count = 0
     
-    # 根据用户数量动态调整线程池大小，最多10个线程
-    max_workers = min(10, max(1, len(users)))
+    # 根据用户数量动态调整线程池大小
+    max_workers = min(50, max(1, len(users)))
     
     # 使用线程池并发发送消息
     with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="msg_send") as executor:
@@ -370,17 +370,17 @@ def format_signal(sig):
         return (
             f"[海龟交易法] {sig['symbol']} {sig['timeframe']} 发现卖出信号\n"
             f"时间    : {sig['time']}\n"
-            f"开盘价  : {sig['open']}\n"
-            f"收盘价  : {sig['close']}\n"
-            f"MA200   : {sig['ma200']}\n"
-            f"DC中轨  : {sig['mid']}\n"
+            f"开盘价  : {sig['open']:.6f}\n"
+            f"收盘价  : {sig['close']:.6f}\n"
+            f"MA200   : {sig['ma200']:.6f}\n"
+            f"DC中轨  : {sig['mid']:.6f}\n"
         )
     elif sig["type"] == "five_down":
         return (
             f"[五连阴] {sig['symbol']} {sig['timeframe']} 发现五连阴卖出信号\n"
             f"时间    : {sig['time']}\n"
-            f"最近5根K线收盘价: {', '.join(map(str, sig['closes']))}\n"
-            f"最近5根K线开盘价: {', '.join(map(str, sig['opens']))}\n"
+            f"最近5根K线收盘价: {', '.join([f'{x:.6f}' for x in sig['closes']])}\n"
+            f"最近5根K线开盘价: {', '.join([f'{x:.6f}' for x in sig['opens']])}\n"
         )
     elif sig["type"] == "rsi6_extreme":
         return (
