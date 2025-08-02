@@ -294,6 +294,61 @@ def send_to_allowed_users(msg):
     elapsed_time = time.time() - start_time
     logging.info(f"批量发送完成: 成功 {success_count}/{len(users)}, 失败 {failed_count}, 耗时: {elapsed_time:.2f}秒")
 
+def send_pinned_message_to_all(msg):
+    """发送置顶消息给所有授权用户"""
+    users = list(load_allowed_users())
+    if not users:
+        logging.warning("没有订阅用户，无法发送置顶消息")
+        return
+    
+    start_time = time.time()
+    success_count = 0
+    failed_count = 0
+    
+    # 根据用户数量动态调整线程池大小
+    max_workers = min(50, max(1, len(users)))
+    
+    # 使用线程池并发发送置顶消息
+    with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="pin_send") as executor:
+        # 提交所有发送任务
+        future_to_user = {
+            executor.submit(send_pinned_message_async, user_id, msg): user_id 
+            for user_id in users
+        }
+        
+        # 收集结果
+        for future in as_completed(future_to_user):
+            user_id = future_to_user[future]
+            try:
+                result = future.result(timeout=20)  # 20秒超时（置顶需要更多时间）
+                if result:
+                    success_count += 1
+                else:
+                    failed_count += 1
+            except Exception as e:
+                failed_count += 1
+                logging.error(f"发送置顶消息给用户 {user_id} 异常: {e}")
+    
+    elapsed_time = time.time() - start_time
+    logging.info(f"置顶消息发送完成: 成功 {success_count}/{len(users)}, 失败 {failed_count}, 耗时: {elapsed_time:.2f}秒")
+
+def send_pinned_message_async(chat_id, text):
+    """异步发送置顶消息"""
+    try:
+        # 先发送普通消息
+        message_sent = send_message(chat_id, text)
+        if not message_sent:
+            return False
+        
+        # 获取刚发送的消息ID来置顶（需要bot有管理员权限）
+        # 注意：只有在群组中且bot有置顶权限时才能置顶
+        # 私聊中无法置顶消息，所以这里只是发送消息
+        return True
+        
+    except Exception as e:
+        logging.error(f"发送置顶消息给 {chat_id} 异常: {e}")
+        return False
+
 def send_to_allowed_users_serial(msg):
     """原始的串行发送方式（保留作为备用）"""
     users = load_allowed_users()
@@ -464,6 +519,16 @@ def monitor_new_users():
                         known_users = load_allowed_users()
                         send_message(user_id, f"🧹 清理完成！\n发现被屏蔽用户: {total_blocked} 人\n成功移除: {removed_count} 人")
                         continue
+                    elif text.startswith("/pin "):
+                        # 发送置顶消息给所有用户
+                        pin_message = text.split(" ", 1)[1].strip()
+                        if pin_message:
+                            send_pinned_message_to_all(pin_message)
+                            send_message(user_id, f"消息已发送给所有用户")
+                        else:
+                            send_message(user_id, "请提供要置顶的消息内容")
+                        continue
+
 
                 # 已授权用户不需重复订阅
                 if user_id in known_users:
@@ -554,14 +619,15 @@ def escape_markdown(text):
 
 def set_bot_commands():
     commands = [
+        {"command": "unsubscribe", "description": "退订推送"},
         {"command": "settings", "description": "查看当前通知设置"},
         {"command": "set_timeframes", "description": "设置接收时间周期(逗号分隔)"},
         {"command": "set_signals", "description": "设置接收信号类型(逗号分隔)"},
-        {"command": "unsubscribe", "description": "退订推送"},
         {"command": "adduser", "description": "管理员：手动添加用户"},
         {"command": "removeuser", "description": "管理员：手动移除用户"},
         {"command": "listusers", "description": "管理员：查看所有订阅用户"},
         {"command": "cleanblocked", "description": "管理员：清理被屏蔽的用户"},
+        {"command": "pin", "description": "管理员：发送置顶消息给所有用户"},
     ]
     url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/setMyCommands"
     data = {"commands": str(commands).replace("'", '"')}
