@@ -98,7 +98,7 @@ def list_all_users():
     if not users:
         return "📋 当前没有订阅用户"
     
-    msg = f"📋 *订阅用户列表* \\(共{len(users)}人\\)\n\n"
+    msg = f"📋 订阅用户列表 (共{len(users)}人)\n\n"
     
     for i, user_id in enumerate(users, 1):
         user_info = get_user_info(user_id)
@@ -124,12 +124,11 @@ def list_all_users():
             else:
                 signal_names.append(signal)
         
-        msg += f"*{i}\\. {user_info['full_name']}* \\(@{user_info['username']}\\)\n"
-        msg += f"```\n"
-        msg += f"用户ID  : {user_id}\n"
-        msg += f"周期    : {', '.join(timeframes) if timeframes else '未设置'}\n"
-        msg += f"信号    : {', '.join(signal_names) if signal_names else '未设置'}\n"
-        msg += f"```\n"
+        # 使用简单的文本格式，避免复杂的Markdown
+        msg += f"{i}. {user_info['full_name']} (@{user_info['username']})\n"
+        msg += f"   用户ID: {user_id}\n"
+        msg += f"   周期: {', '.join(timeframes) if timeframes else '未设置'}\n"
+        msg += f"   信号: {', '.join(signal_names) if signal_names else '未设置'}\n\n"
     
     return msg
 
@@ -159,11 +158,20 @@ def send_message(chat_id, text):
         logging.error("TG_BOT_TOKEN 或 chat_id 未设置")
         return
     url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage"
-    data = {
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "Markdown"
-    }
+    
+    # 检查是否是用户列表消息，如果是则使用纯文本模式
+    if text.startswith("📋 订阅用户列表"):
+        data = {
+            "chat_id": chat_id,
+            "text": text
+        }
+    else:
+        data = {
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": "Markdown"
+        }
+    
     try:
         resp = requests.post(url, data=data, timeout=10)
         if resp.status_code != 200:
