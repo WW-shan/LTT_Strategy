@@ -45,7 +45,7 @@ def find_can_biao_xiu(df):
     try:
         can_idx = biao_idx = xiu_idx = None
         # 从后往前找参
-        for i in range(len(df)-1, 0, -1):
+        for i in range(len(df)-2, 0, -1):
             # 防止NaN
             if i < 1 or i >= len(df):
                 continue
@@ -64,7 +64,7 @@ def find_can_biao_xiu(df):
             return None, None, None
         can_low = df['low'].iloc[can_idx]
         # 标：参的低点后，最高价低于参
-        for j in range(can_idx+1, len(df)):
+        for j in range(can_idx+1, len(df)-1):
             if any(np.isnan([df['close'].iloc[j], df['open'].iloc[j], df['high'].iloc[j]])):
                 continue
             if (
@@ -78,7 +78,7 @@ def find_can_biao_xiu(df):
             return can_idx, None, None
         biao_low = df['low'].iloc[biao_idx]
         # 修：标的低点后，最高价低于标
-        for k in range(biao_idx+1, len(df)):
+        for k in range(biao_idx+1, len(df)-1):
             if any(np.isnan([df['close'].iloc[k], df['open'].iloc[k], df['high'].iloc[k]])):
                 continue
             if (
