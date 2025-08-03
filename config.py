@@ -3,7 +3,7 @@ import os
 LOGLEVEL = os.getenv('LOGLEVEL', 'INFO').upper()
 TG_BOT_TOKEN = os.getenv('TG_BOT_TOKEN', '')
 TG_CHAT_ID = os.getenv('TG_CHAT_ID', '')
-SYMBOLS = ['BTC/USDT:USDT', 'ETH/USDT:USDT']
+SYMBOLS = ['BTC/USDT:USDT']
 TIMEFRAMES = ['1h', '4h', '1d']
 DC_PERIOD = 28
 MAX_WORKERS = int(os.getenv('MAX_WORKERS', 10))
@@ -16,5 +16,5 @@ SUBSCRIBE_PASSWORD = "12345678"
 USER_SETTINGS_FILE = "user_settings.json"
 DEFAULT_USER_SETTINGS = {
     "enabled_timeframes": ["1h", "4h", "1d"],  # 默认全部启用
-    "enabled_signals": ["rsi6_extreme", "turtle_buy", "turtle_sell", "can_biao_xiu", "five_down"]  # 默认启用信号类型
+    "enabled_signals": ["turtle_buy", "turtle_sell", "can_biao_xiu", "five_down"]
 }

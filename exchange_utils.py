@@ -29,8 +29,6 @@ YAHOO_SYMBOL_MAP = {
     'ETC': 'ETC-USD',
     'XLM': 'XLM-USD',
     'ALGO': 'ALGO-USD',
-    'VET': 'VET-USD',
-    'ICP': 'ICP-USD',
 }
 
 def get_yahoo_data(symbol, limit=500):

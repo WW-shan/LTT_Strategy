@@ -53,7 +53,8 @@ def update_user_settings(user_id, setting_type, value):
         if timeframes:
             settings[user_id]["enabled_timeframes"] = timeframes
     elif setting_type == "signals":
-        signals = [s.strip() for s in value.split(',') if s.strip()]
+        # 过滤掉rsi6_extreme，因为它是必选的
+        signals = [s.strip() for s in value.split(',') if s.strip() and s.strip() != "rsi6_extreme"]
         settings[user_id]["enabled_signals"] = signals
     save_user_settings(settings)
 
@@ -144,27 +145,25 @@ def list_all_users():
         timeframes = settings.get('enabled_timeframes', [])
         signals = settings.get('enabled_signals', [])
         
-        # 简化信号名称显示
+        # 简化信号名称显示，排除RSI6(必选项)
         signal_names = []
         for signal in signals:
-            if signal == "rsi6_extreme":
-                signal_names.append("RSI6")
-            elif signal == "turtle_buy":
+            if signal == "turtle_buy":
                 signal_names.append("🐢买")
             elif signal == "turtle_sell":
-                signal_names.append("🐢卖")
+                signal_names.append("🐢卖") 
             elif signal == "can_biao_xiu":
                 signal_names.append("📊参标修")
             elif signal == "five_down":
                 signal_names.append("📉五连阴")
-            else:
-                signal_names.append(signal)
+            # 跳过rsi6_extreme，因为它是必选的，不显示在可选列表中
         
         # 使用简单的文本格式，避免复杂的Markdown
         msg += f"{i}. {user_info['full_name']} (@{user_info['username']})\n"
         msg += f"   用户ID: {user_id}\n"
         msg += f"   周期: {', '.join(timeframes) if timeframes else '未设置'}\n"
-        msg += f"   信号: {', '.join(signal_names) if signal_names else '未设置'}\n\n"
+        msg += f"   必选信号: RSI6\n"
+        msg += f"   可选信号: {', '.join(signal_names) if signal_names else '无'}\n\n"
     
     return msg
 
@@ -397,20 +396,18 @@ def send_to_allowed_users_serial(msg):
 
 def handle_signals(sig, rsi6_signals):
     """处理信号发送，对符合条件的用户发送信号"""
-    users = list(load_allowed_users())
-    rsi6_collected = False
+    # RSI6信号只收集用于汇总，不单独发送
+    if sig["type"] == "rsi6_extreme":
+        rsi6_signals.append(sig)
+        return
     
-    # 为非RSI6信号收集需要发送的用户
+    # 为其他信号类型收集需要发送的用户
+    users = list(load_allowed_users())
     target_users = []
     
     for user_id in users:
         if should_send_signal(user_id, sig):
-            if sig["type"] == "rsi6_extreme" and not rsi6_collected:
-                rsi6_signals.append(sig)
-                rsi6_collected = True
-                break
-            else:
-                target_users.append(user_id)
+            target_users.append(user_id)
     
     # 如果有目标用户，使用并发发送
     if target_users:
@@ -478,11 +475,32 @@ def format_signal(sig):
             f"最近5根K线开盘价: {', '.join([f'{x:.6f}' for x in sig['opens']])}\n"
         )
     elif sig["type"] == "rsi6_extreme":
-        return (
+        msg = (
             f"[RSI6极值] {sig['symbol']} {sig['timeframe']}\n"
             f"值 : {sig['rsi6']:.2f}\n"
             f"时间 : {sig['time']}\n"
         )
+        
+        # 如果有RSI预测信息，添加到消息中
+        if 'prediction_type' in sig and sig['prediction_type'] is not None:
+            if sig['prediction_type'] == "bottom":
+                msg += (
+                    f"📉 RSI接针预测:\n"
+                    f"当前价格: {sig['current_price']:.2f}\n"
+                    f"预测底部: {sig['predicted_bottom']:.2f}\n"
+                    f"预计跌幅: {sig['potential_drop']:.2f}\n"
+                    f"RSI斜率: {sig['rsi_slope']:.2f}\n"
+                )
+            elif sig['prediction_type'] == "top":
+                msg += (
+                    f"📈 RSI顶部预测:\n"
+                    f"当前价格: {sig['current_price']:.2f}\n"
+                    f"预测顶部: {sig['predicted_top']:.2f}\n"
+                    f"预计涨幅: {sig['potential_rise']:.2f}\n"
+                    f"RSI斜率: {sig['rsi_slope']:.2f}\n"
+                )
+        
+        return msg
     elif sig["type"] == "can_biao_xiu":
         msg = f"[参标修] {sig['symbol']}\n"
         msg += f"参信号时间: {sig.get('can_time', '-')}\n"
@@ -496,10 +514,67 @@ def format_signal(sig):
     # 汇总推送RSI6极值
 def rsi6_summary(signals):
     signals.sort(key=lambda x: x['rsi6'], reverse=True)
-    table = f"{'交易对':<18}{'周期':<7}{'RSI6':<7}\n"
-    table += f"{'-'*18}{'-'*7}{'-'*7}\n"
-    for s in signals:
-        table += f"{s['symbol']:<20}{s['timeframe']:<8}{s['rsi6']:<8.2f}\n"
+    
+    # 检查是否有预测信息
+    has_predictions = any('prediction_type' in s and s['prediction_type'] is not None for s in signals)
+    
+    if has_predictions:
+        # 包含预测信息的简化表格
+        table = f"{'币种':<8}{'周期':<4}{'RSI6':<6}{'当前价格':<12}{'预测价格':<12}\n"
+        table += f"{'-'*8}{'-'*4}{'-'*6}{'-'*12}{'-'*12}\n"
+        for s in signals:
+            if 'prediction_type' in s and s['prediction_type'] is not None:
+                if s['prediction_type'] == "bottom":
+                    predicted_price = s.get('predicted_bottom', 0)
+                elif s['prediction_type'] == "top":
+                    predicted_price = s.get('predicted_top', 0)
+                else:
+                    predicted_price = 0
+                
+                # 根据价格大小动态调整格式，使其更易读
+                if s['current_price'] >= 100:
+                    # 大于100的价格，保留整数
+                    current_fmt = f"{s['current_price']:.0f}"
+                    predicted_fmt = f"{predicted_price:.0f}"
+                elif s['current_price'] >= 1:
+                    # 1到100之间，保留2位小数
+                    current_fmt = f"{s['current_price']:.2f}"
+                    predicted_fmt = f"{predicted_price:.2f}"
+                elif s['current_price'] >= 0.01:
+                    # 0.01到1之间，保留4位小数
+                    current_fmt = f"{s['current_price']:.4f}"
+                    predicted_fmt = f"{predicted_price:.4f}"
+                elif s['current_price'] >= 0.0001:
+                    # 0.0001到0.01之间，保留6位小数
+                    current_fmt = f"{s['current_price']:.6f}"
+                    predicted_fmt = f"{predicted_price:.6f}"
+                else:
+                    # 极小价格，保留8位小数
+                    current_fmt = f"{s['current_price']:.8f}"
+                    predicted_fmt = f"{predicted_price:.8f}"
+                
+                table += f"{s['symbol']:<8}{s['timeframe']:<4}{s['rsi6']:<6.1f}{current_fmt:<12}{predicted_fmt:<12}\n"
+            else:
+                # 无预测信息的行
+                if s.get('current_price', 0) >= 100:
+                    current_fmt = f"{s.get('current_price', 0):.0f}" if 'current_price' in s else "--"
+                elif s.get('current_price', 0) >= 1:
+                    current_fmt = f"{s.get('current_price', 0):.2f}" if 'current_price' in s else "--"
+                elif s.get('current_price', 0) >= 0.01:
+                    current_fmt = f"{s.get('current_price', 0):.4f}" if 'current_price' in s else "--"
+                elif s.get('current_price', 0) >= 0.0001:
+                    current_fmt = f"{s.get('current_price', 0):.6f}" if 'current_price' in s else "--"
+                else:
+                    current_fmt = f"{s.get('current_price', 0):.8f}" if 'current_price' in s and s['current_price'] > 0 else "--"
+                
+                table += f"{s['symbol']:<8}{s['timeframe']:<4}{s['rsi6']:<6.1f}{current_fmt:<12}{'--':<12}\n"
+    else:
+        # 原始简化表格
+        table = f"{'币种':<12}{'周期':<6}{'RSI6':<8}\n"
+        table += f"{'-'*12}{'-'*6}{'-'*8}\n"
+        for s in signals:
+            table += f"{s['symbol']:<12}{s['timeframe']:<6}{s['rsi6']:<8.1f}\n"
+    
     send_long_telegram_message(f"RSI6极值信号汇总：\n```\n{table}```")
 
 def monitor_new_users():
@@ -584,14 +659,31 @@ def monitor_new_users():
                         continue
                     elif text.startswith("/settings"):
                         settings = get_user_settings(user_id)
+                        
+                        # 显示可选信号类型
+                        optional_signals = settings.get('enabled_signals', [])
+                        optional_signal_names = []
+                        for signal in optional_signals:
+                            if signal == "turtle_buy":
+                                optional_signal_names.append("🐢买")
+                            elif signal == "turtle_sell":
+                                optional_signal_names.append("🐢卖")
+                            elif signal == "can_biao_xiu":
+                                optional_signal_names.append("📊参标修")
+                            elif signal == "five_down":
+                                optional_signal_names.append("📉五连阴")
+                            # 跳过rsi6_extreme，因为它是必选的
+                        
                         msg = (
                             f"当前设置：\n"
                             f"启用时间周期: {', '.join(settings.get('enabled_timeframes', []))}\n"
-                            + escape_markdown(f"启用信号类型: {', '.join(settings.get('enabled_signals', []))}")+ "\n\n"
-                            "PS: 参标修仅启用日线可用，五连阴仅识别BTC，ETH交易对\n\n"
+                            f"必选信号类型: RSI6 (自动启用)\n"
+                            f"可选信号类型: {', '.join(optional_signal_names) if optional_signal_names else '无'}\n\n"
+                            "PS: RSI6对所有用户必选，参标修仅启用日线可用，五连阴仅识别BTC交易对\n\n"
                             "修改设置示例:\n"
                             + escape_markdown("/set_timeframes 1h,4h,1d") + "\n"
                             + escape_markdown("/set_signals turtle_buy,turtle_sell,five_down") + "\n"
+                            "注意: RSI6信号无需手动设置，系统自动为所有用户启用\n"
                         )
                         send_message(user_id, msg)
                     elif text.startswith("/set_timeframes"):
@@ -607,7 +699,7 @@ def monitor_new_users():
                             update_user_settings(user_id, "signals", signals)
                             send_message(user_id, "启用信号类型已更新")
                         except:
-                            send_message(user_id, escape_markdown("用法: /set_signals rsi6_extreme,turtle_buy,turtle_sell,can_biao_xiu,five_down"))
+                            send_message(user_id, escape_markdown("用法: /set_signals turtle_buy,turtle_sell,can_biao_xiu,five_down"))
                     # 其他消息可忽略或自定义
                     continue
 

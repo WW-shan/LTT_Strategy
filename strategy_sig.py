@@ -41,6 +41,95 @@ def is_strong_uptrend(df, idx):
         df['close'].iloc[idx] > df['ma5'].iloc[idx]
     )
 
+def calculate_rsi_bottom_prediction(df):
+    """
+    基于RSI变化趋势预测底部价格
+    使用您的算法：通过连续两根K线的RSI和价格变化计算斜率，预测RSI接近0时的价格位置
+    """
+    try:
+        if len(df) < 2:
+            return None, None
+            
+        # 获取最近两根K线
+        last_row = df.iloc[-1]
+        prev_row = df.iloc[-2]
+        
+        # 检查数据完整性
+        if any(np.isnan([last_row['rsi6'], prev_row['rsi6'], last_row['close'], prev_row['close']])):
+            return None, None
+            
+        # 计算RSI和价格的变化
+        rsi_change = last_row['rsi6'] - prev_row['rsi6']
+        price_change = last_row['close'] - prev_row['close']
+        
+        # 如果RSI变化为0，无法计算斜率
+        if abs(rsi_change) < 0.01:
+            return None, None
+            
+        # 计算RSI与价格的变化率（类似您的527.38计算）
+        rsi_slope = price_change / rsi_change
+        
+        # 预测RSI降到0时的价格（假设线性关系）
+        # 当前RSI值 * 斜率 = 还会跌多少
+        potential_drop = last_row['rsi6'] * rsi_slope
+        predicted_bottom = last_row['close'] - potential_drop
+        
+        logging.debug(f"RSI底部预测计算: 前一根RSI={prev_row['rsi6']:.2f}@{prev_row['close']:.2f}, "
+                     f"当前RSI={last_row['rsi6']:.2f}@{last_row['close']:.2f}, "
+                     f"RSI变化={rsi_change:.2f}, 价格变化={price_change:.2f}, "
+                     f"斜率={rsi_slope:.2f}, 预测跌幅={potential_drop:.2f}, 预测底部={predicted_bottom:.2f}")
+        
+        return predicted_bottom, rsi_slope
+        
+    except Exception as e:
+        logging.error(f"RSI底部预测计算异常: {e}", exc_info=True)
+        return None, None
+
+def calculate_rsi_top_prediction(df):
+    """
+    基于RSI变化趋势预测顶部价格
+    使用相同算法：通过连续两根K线的RSI和价格变化计算斜率，预测RSI接近100时的价格位置
+    """
+    try:
+        if len(df) < 2:
+            return None, None
+            
+        # 获取最近两根K线
+        last_row = df.iloc[-1]
+        prev_row = df.iloc[-2]
+        
+        # 检查数据完整性
+        if any(np.isnan([last_row['rsi6'], prev_row['rsi6'], last_row['close'], prev_row['close']])):
+            return None, None
+            
+        # 计算RSI和价格的变化
+        rsi_change = last_row['rsi6'] - prev_row['rsi6']
+        price_change = last_row['close'] - prev_row['close']
+        
+        # 如果RSI变化为0，无法计算斜率
+        if abs(rsi_change) < 0.01:
+            return None, None
+            
+        # 计算RSI与价格的变化率
+        rsi_slope = price_change / rsi_change
+        
+        # 预测RSI升到100时的价格（假设线性关系）
+        # (100 - 当前RSI值) * 斜率 = 还会涨多少
+        rsi_to_top = 100 - last_row['rsi6']
+        potential_rise = rsi_to_top * rsi_slope
+        predicted_top = last_row['close'] + potential_rise
+        
+        logging.debug(f"RSI顶部预测计算: 前一根RSI={prev_row['rsi6']:.2f}@{prev_row['close']:.2f}, "
+                     f"当前RSI={last_row['rsi6']:.2f}@{last_row['close']:.2f}, "
+                     f"RSI变化={rsi_change:.2f}, 价格变化={price_change:.2f}, "
+                     f"斜率={rsi_slope:.2f}, 预测涨幅={potential_rise:.2f}, 预测顶部={predicted_top:.2f}")
+        
+        return predicted_top, rsi_slope
+        
+    except Exception as e:
+        logging.error(f"RSI顶部预测计算异常: {e}", exc_info=True)
+        return None, None
+
 def find_can_biao_xiu(df):
     try:
         can_idx = biao_idx = xiu_idx = None
@@ -94,16 +183,17 @@ def find_can_biao_xiu(df):
         return None, None, None
 
 def get_last_can_signal(symbol_short):
-    fname = f"tmp/last_can_signal_{symbol_short}.txt"
+    fname = f"tmp/last_can_biao_xiu_state_{symbol_short}.txt"
     if os.path.exists(fname):
         with open(fname, "r") as f:
             return f.read().strip()
     return None
 
-def set_last_can_signal(symbol_short, can_time):
-    fname = f"tmp/last_can_signal_{symbol_short}.txt"
+def set_last_can_signal(symbol_short, signal_state):
+    """保存参标修信号状态（包含can_time,biao_time,xiu_time）"""
+    fname = f"tmp/last_can_biao_xiu_state_{symbol_short}.txt"
     with open(fname, "w") as f:
-        f.write(str(can_time))
+        f.write(str(signal_state))
 
 def check_signal(symbol, timeframe, df, extra_signal=False):
     """
@@ -126,13 +216,45 @@ def check_signal(symbol, timeframe, df, extra_signal=False):
         # RSI6极值
         if (last_row['rsi6'] > 95 or last_row['rsi6'] < 5):
             logging.info(f"{symbol_short} {timeframe} 检测到极值RSI6: {last_row['rsi6']}")
-            signals.append({
+            
+            # RSI预测（根据RSI值选择底部或顶部预测）
+            predicted_price = None
+            rsi_slope = None
+            prediction_type = None
+            
+            if last_row['rsi6'] < 5 and len(df) >= 2:
+                # RSI接针预测（当RSI < 5时预测底部）
+                predicted_price, rsi_slope = calculate_rsi_bottom_prediction(df)
+                prediction_type = "bottom"
+            elif last_row['rsi6'] > 95 and len(df) >= 2:
+                # RSI顶部预测（当RSI > 95时预测顶部）
+                predicted_price, rsi_slope = calculate_rsi_top_prediction(df)
+                prediction_type = "top"
+            
+            signal_data = {
                 "type": "rsi6_extreme",
                 "symbol": symbol_short,
                 "timeframe": timeframe,
                 "rsi6": last_row['rsi6'],
                 "time": last_row['timestamp']
-            })
+            }
+            
+            # 如果有预测结果，添加到信号中
+            if predicted_price is not None:
+                signal_data["rsi_slope"] = rsi_slope
+                signal_data["current_price"] = last_row['close']
+                signal_data["prediction_type"] = prediction_type
+                
+                if prediction_type == "bottom":
+                    signal_data["predicted_bottom"] = predicted_price
+                    signal_data["potential_drop"] = last_row['close'] - predicted_price
+                    logging.info(f"{symbol_short} {timeframe} RSI接针预测: 当前价格={last_row['close']:.2f}, 预测底部={predicted_price:.2f}, 预计跌幅={last_row['close'] - predicted_price:.2f}, RSI斜率={rsi_slope:.2f}")
+                elif prediction_type == "top":
+                    signal_data["predicted_top"] = predicted_price
+                    signal_data["potential_rise"] = predicted_price - last_row['close']
+                    logging.info(f"{symbol_short} {timeframe} RSI顶部预测: 当前价格={last_row['close']:.2f}, 预测顶部={predicted_price:.2f}, 预计涨幅={predicted_price - last_row['close']:.2f}, RSI斜率={rsi_slope:.2f}")
+            
+            signals.append(signal_data)
 
         # 五连阴信号
         if extra_signal:
@@ -178,10 +300,19 @@ def check_can_biao_xiu_signal(symbol, timeframe):
         # 添加详细的搜索状态日志
         if can_idx is not None:
             can_time = str(df['timestamp'].iloc[can_idx])
-            last_time = get_last_can_signal(symbol_short)
+            biao_time = str(df['timestamp'].iloc[biao_idx]) if biao_idx is not None else None
+            xiu_time = str(df['timestamp'].iloc[xiu_idx]) if xiu_idx is not None else None
             
-            if can_time != last_time:
-                logging.info(f"参标修 {symbol_short} {timeframe} 检测到新信号: can_idx={can_idx}, biao_idx={biao_idx}, xiu_idx={xiu_idx}, can_time={can_time}")
+            # 构建当前信号状态字符串
+            current_state = f"{can_time},{biao_time},{xiu_time}"
+            last_state = get_last_can_signal(symbol_short)
+            
+            # 如果信号状态发生变化（参、标、修任一变化都触发推送）
+            if current_state != last_state:
+                logging.info(f"参标修 {symbol_short} {timeframe} 检测到新信号变化: can_idx={can_idx}, biao_idx={biao_idx}, xiu_idx={xiu_idx}")
+                logging.info(f"参标修 {symbol_short} 上次状态: {last_state}")
+                logging.info(f"参标修 {symbol_short} 当前状态: {current_state}")
+                
                 signals.append({
                     "type": "can_biao_xiu",
                     "symbol": symbol_short,
@@ -190,12 +321,12 @@ def check_can_biao_xiu_signal(symbol, timeframe):
                     "biao_idx": biao_idx,
                     "xiu_idx": xiu_idx,
                     "can_time": can_time,
-                    "biao_time": str(df['timestamp'].iloc[biao_idx]) if biao_idx is not None else None,
-                    "xiu_time": str(df['timestamp'].iloc[xiu_idx]) if xiu_idx is not None else None,
+                    "biao_time": biao_time,
+                    "xiu_time": xiu_time,
                 })
-                set_last_can_signal(symbol_short, can_time)
+                set_last_can_signal(symbol_short, current_state)
             else:
-                logging.debug(f"参标修 {symbol_short} {timeframe}: 信号已处理过 {can_time}")
+                logging.debug(f"参标修 {symbol_short} {timeframe}: 信号状态未变化 {current_state}")
         else:
             # 每10次输出一次搜索状态，避免日志过多
             import random
