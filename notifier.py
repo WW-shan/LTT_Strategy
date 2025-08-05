@@ -520,8 +520,8 @@ def rsi6_summary(signals):
     
     if has_predictions:
         # 包含预测信息的简化表格
-        table = f"{'币种':<8}{'周期':<4}{'RSI6':<6}{'当前价格':<12}{'预测价格':<12}\n"
-        table += f"{'-'*8}{'-'*4}{'-'*6}{'-'*12}{'-'*12}\n"
+        table = f"{'币种':<7}{'周期':<3}{'RSI6':<6}{'当前价格':<10}{'预测极限价格':<12}\n"
+        table += f"{'-'*7}{'-'*3}{'-'*6}{'-'*10}{'-'*12}\n"
         for s in signals:
             if 'prediction_type' in s and s['prediction_type'] is not None:
                 if s['prediction_type'] == "bottom":
@@ -553,21 +553,21 @@ def rsi6_summary(signals):
                     current_fmt = f"{s['current_price']:.8f}"
                     predicted_fmt = f"{predicted_price:.8f}"
                 
-                table += f"{s['symbol']:<8}{s['timeframe']:<4}{s['rsi6']:<6.1f}{current_fmt:<12}{predicted_fmt:<12}\n"
+                table += f"{s['symbol']:<8}{s['timeframe']:<5}{s['rsi6']:<6.1f}{current_fmt:<12}{predicted_fmt:<12}\n"
             else:
                 # 无预测信息的行
                 if s.get('current_price', 0) >= 100:
-                    current_fmt = f"{s.get('current_price', 0):.0f}" if 'current_price' in s else "--"
-                elif s.get('current_price', 0) >= 1:
                     current_fmt = f"{s.get('current_price', 0):.2f}" if 'current_price' in s else "--"
+                elif s.get('current_price', 0) >= 1:
+                    current_fmt = f"{s.get('current_price', 0):.3f}" if 'current_price' in s else "--"
                 elif s.get('current_price', 0) >= 0.01:
                     current_fmt = f"{s.get('current_price', 0):.4f}" if 'current_price' in s else "--"
                 elif s.get('current_price', 0) >= 0.0001:
                     current_fmt = f"{s.get('current_price', 0):.6f}" if 'current_price' in s else "--"
                 else:
                     current_fmt = f"{s.get('current_price', 0):.8f}" if 'current_price' in s and s['current_price'] > 0 else "--"
-                
-                table += f"{s['symbol']:<8}{s['timeframe']:<4}{s['rsi6']:<6.1f}{current_fmt:<12}{'--':<12}\n"
+
+                table += f"{s['symbol']:<8}{s['timeframe']:<5}{s['rsi6']:<6.1f}{current_fmt:<12}{'--':<12}\n"
     else:
         # 原始简化表格
         table = f"{'币种':<12}{'周期':<6}{'RSI6':<8}\n"
