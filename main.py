@@ -4,7 +4,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 from config import LOGLEVEL, TIMEFRAMES, MAX_WORKERS, DC_PERIOD, SYMBOLS, MA_LONG, USER_SETTINGS_FILE
-from exchange_utils import get_data, get_all_usdt_swap_symbols
+from exchange_utils import get_data, get_all_usdt_swap_symbols, warmup_connection
 from strategy_sig import check_signal, check_turtle_signal, check_can_biao_xiu_signal
 from notifier import monitor_new_users, send_telegram_message, set_bot_commands, rsi6_summary, handle_signals
 from utils import ensure_dir_exists, ensure_file_exists
@@ -25,6 +25,9 @@ if __name__ == "__main__":
     threading.Thread(target=monitor_new_users, daemon=True).start()
 
 def job():
+    # 预热连接，特别是为了避免主要币种数据获取失败
+    warmup_connection()
+    
     all_symbols = get_all_usdt_swap_symbols()
     rsi6_signals = []
     df_cache = {}
