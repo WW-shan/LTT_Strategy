@@ -54,7 +54,6 @@ LTT_Strategy/
 ├── requirements.txt       # Python依赖包列表
 ├── allowed_users.txt      # 授权用户列表（自动管理）
 ├── user_settings.json     # 用户个性化设置
-├── tmp/                   # 信号缓存和临时文件
 └── README.md              # 项目文档
 ```
 
