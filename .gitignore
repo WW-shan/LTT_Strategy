@@ -16,6 +16,9 @@ env/
 !requirements.txt
 *.json
 
+# 临时文件和缓存目录
+tmp/
+
 # IDE和编辑器相关文件
 .vscode/
 .idea/
