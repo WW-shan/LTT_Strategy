@@ -4,7 +4,6 @@ import logging
 import yfinance as yf
 import time
 
-# 使用bitget作为主要交易所数据源
 exchange = ccxt.bitget({
     'options': {'defaultType': 'swap'},
     'enableRateLimit': True,
