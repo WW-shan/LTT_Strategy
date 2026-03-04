@@ -1,0 +1,13 @@
+services:
+  ltt-strategy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ltt-strategy
+    restart: unless-stopped
+    environment:
+      TG_BOT_TOKEN: ${TG_BOT_TOKEN:-}
+      TG_CHAT_ID: ${TG_CHAT_ID:-}
+      SUBSCRIBE_PASSWORD: ${SUBSCRIBE_PASSWORD:-}
+      LOGLEVEL: ${LOGLEVEL:-INFO}
+      MAX_WORKERS: ${MAX_WORKERS:-8}

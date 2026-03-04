@@ -115,7 +115,49 @@ pip install -r requirements.txt
 python main.py
 ```
 
-### 2. Telegram 机器人命令
+### 2. Docker 一键启动（推荐）
+
+先复制示例环境变量文件：
+
+```bash
+cp .env.example .env
+```
+
+Windows PowerShell 可使用：
+
+```powershell
+Copy-Item .env.example .env
+```
+
+然后编辑 `.env` 填入真实值：
+
+```bash
+TG_BOT_TOKEN=your_telegram_bot_token
+TG_CHAT_ID=your_telegram_chat_id
+SUBSCRIBE_PASSWORD=your_subscription_password
+LOGLEVEL=INFO
+MAX_WORKERS=8
+```
+
+一键启动：
+
+```bash
+docker compose up -d --build
+```
+
+查看日志：
+
+```bash
+docker compose logs -f
+```
+
+停止服务：
+
+```bash
+docker compose down
+```
+
+### 3. Telegram 机器人命令
 
 #### 普通用户命令
 
@@ -132,7 +174,7 @@ python main.py
 - `/cleanblocked` - 清理被屏蔽的用户
 - `/pin <消息内容>` - 发送置顶消息给所有用户
 
-### 3. 用户订阅流程
+### 4. 用户订阅流程
 
 1. 用户向机器人发送任意消息
 2. 机器人要求输入订阅密码
