@@ -292,10 +292,6 @@ def should_send_signal(user_id, signal):
         return False
     return True
     
-def send_message_async(chat_id, text):
-    """异步发送单条消息的包装函数"""
-    return send_message(chat_id, text)
-
 def send_to_allowed_users(msg):
     """并发发送消息给所有授权用户"""
     users = list(load_allowed_users())
@@ -313,7 +309,7 @@ def send_to_allowed_users(msg):
     with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="msg_send") as executor:
         # 提交所有发送任务
         future_to_user = {
-            executor.submit(send_message_async, user_id, msg): user_id 
+            executor.submit(send_message, user_id, msg): user_id
             for user_id in users
         }
         
@@ -388,12 +384,6 @@ def send_pinned_message_async(chat_id, text):
         logging.error(f"发送置顶消息给 {chat_id} 异常: {e}")
         return False
 
-def send_to_allowed_users_serial(msg):
-    """原始的串行发送方式（保留作为备用）"""
-    users = load_allowed_users()
-    for user_id in users:
-        send_message(user_id, msg)
-
 def handle_signals(sig, rsi6_signals):
     """处理信号发送，对符合条件的用户发送信号"""
     # RSI6信号只收集用于汇总，不单独发送
@@ -428,7 +418,7 @@ def send_to_target_users_concurrent(target_users, msg):
     
     with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="signal_send") as executor:
         future_to_user = {
-            executor.submit(send_message_async, user_id, msg): user_id 
+            executor.submit(send_message, user_id, msg): user_id
             for user_id in target_users
         }
         

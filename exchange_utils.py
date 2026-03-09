@@ -32,47 +32,6 @@ YAHOO_SYMBOL_MAP = {
     'ETC': 'ETC-USD',
 }
 
-def get_yahoo_data(symbol, limit=500):
-    """从Yahoo Finance获取日线数据（专门用于海龟交易法）"""
-    try:
-        # 提取币种符号
-        base_symbol = symbol.split('/')[0].upper()
-        yahoo_symbol = YAHOO_SYMBOL_MAP.get(base_symbol)
-        
-        if not yahoo_symbol:
-            logging.debug(f"Yahoo Finance不支持 {base_symbol}，这是正常的")
-            return pd.DataFrame()
-        
-        logging.debug(f"从Yahoo Finance获取 {yahoo_symbol} 日线数据")
-        
-        # 获取2年日线数据
-        ticker = yf.Ticker(yahoo_symbol)
-        hist = ticker.history(period='2y', interval='1d')
-        
-        if hist.empty:
-            return pd.DataFrame()
-        
-        # 转换为标准格式
-        df = pd.DataFrame()
-        df['timestamp'] = hist.index
-        df['open'] = hist['Open'].values
-        df['high'] = hist['High'].values  
-        df['low'] = hist['Low'].values
-        df['close'] = hist['Close'].values
-        df['volume'] = hist['Volume'].values
-        
-        # 限制数据量
-        if len(df) > limit:
-            df = df.tail(limit)
-        
-        df = df.reset_index(drop=True)
-        logging.debug(f"Yahoo Finance {yahoo_symbol} 获取成功，数据量: {len(df)}")
-        return df
-        
-    except Exception as e:
-        logging.error(f"Yahoo Finance获取 {symbol} 数据失败: {e}")
-        return pd.DataFrame()
-
 def get_bitget_data(symbol, timeframe, limit=500, retry_count=5):
     """从Bitget获取数据（用于其他指标）"""
     # 对主要币种使用更长的延迟和更多重试
@@ -130,7 +89,7 @@ def get_bitget_data(symbol, timeframe, limit=500, retry_count=5):
             else:
                 return pd.DataFrame()
 
-def get_data(symbol, timeframe, limit=500, retry=2):
+def get_data(symbol, timeframe, limit=500):
     """
     获取K线数据：
     - 海龟交易法：严格只使用Yahoo Finance日线数据
