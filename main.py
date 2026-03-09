@@ -30,7 +30,6 @@ def job():
     
     all_symbols = get_all_usdt_swap_symbols()
     rsi6_signals = []
-    df_cache = {}
 
     def fetch_data(symbol, timeframe):
         limit = max(DC_PERIOD, MA_LONG, 500)
@@ -50,29 +49,22 @@ def job():
                 if df.empty:
                     logging.warning(f"{symbol} {timeframe} 获取数据失败或数据为空")
                     continue
-                symbol_short = symbol.split('/')[0].upper()
-                df_cache[(symbol_short, timeframe)] = df
                 logging.info(f"{symbol} {timeframe} K线数量: {len(df)}")
                 required_cols = {'timestamp', 'open', 'high', 'low', 'close', 'volume'}
                 if not required_cols.issubset(df.columns):
                     logging.error(f"{symbol} {timeframe} 数据缺少必要字段: {df.columns}")
                     continue
 
-                extra_signal = symbol in SYMBOLS
-                
                 # 1. 检测其他指标信号（使用Bitget数据）
-                signals = check_signal(symbol, timeframe, df, extra_signal=extra_signal)
-                for sig in signals:
+                for sig in check_signal(symbol, timeframe, df, extra_signal=symbol in SYMBOLS):
                     handle_signals(sig, rsi6_signals=rsi6_signals)
-                
+
                 # 2. 检测海龟交易法信号（严格使用Yahoo Finance数据）
-                turtle_signals = check_turtle_signal(symbol, timeframe)
-                for sig in turtle_signals:
+                for sig in check_turtle_signal(symbol, timeframe):
                     handle_signals(sig, rsi6_signals=rsi6_signals)
-                
+
                 # 3. 检测参标修信号（使用Yahoo Finance数据，仅日线）
-                can_biao_xiu_signals = check_can_biao_xiu_signal(symbol, timeframe)
-                for sig in can_biao_xiu_signals:
+                for sig in check_can_biao_xiu_signal(symbol, timeframe):
                     handle_signals(sig, rsi6_signals=rsi6_signals)
 
             except Exception as e:
