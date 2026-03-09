@@ -5,9 +5,13 @@ services:
       dockerfile: Dockerfile
     container_name: ltt-strategy
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       TG_BOT_TOKEN: ${TG_BOT_TOKEN:-}
       TG_CHAT_ID: ${TG_CHAT_ID:-}
       SUBSCRIBE_PASSWORD: ${SUBSCRIBE_PASSWORD:-}
       LOGLEVEL: ${LOGLEVEL:-INFO}
       MAX_WORKERS: ${MAX_WORKERS:-8}
+    volumes:
+      - ./data:/app/data

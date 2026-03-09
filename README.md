@@ -139,6 +139,16 @@ LOGLEVEL=INFO
 MAX_WORKERS=8
 ```
 
+注意：
+- `TG_BOT_TOKEN`、`TG_CHAT_ID`、`SUBSCRIBE_PASSWORD` 为必填项
+- 若缺少上述必填环境变量，容器会在启动入口阶段直接失败，并输出明确错误信息
+- Docker Compose 默认只持久化以下运行状态：
+  - `allowed_users.txt`
+  - `user_settings.json`
+- 以下内容默认不持久化：
+  - `tmp/`
+  - `strategy.log`
+
 一键启动：
 
 ```bash
