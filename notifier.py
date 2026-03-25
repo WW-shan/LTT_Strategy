@@ -5,10 +5,10 @@ import os
 import threading
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from config import TG_BOT_TOKEN, TG_CHAT_ID, SUBSCRIBE_PASSWORD, DEFAULT_USER_SETTINGS, USER_SETTINGS_FILE, TIMEFRAMES, MAX_MSG_LEN
+from config import TG_BOT_TOKEN, TG_CHAT_ID, SUBSCRIBE_PASSWORD, DEFAULT_USER_SETTINGS, USER_SETTINGS_FILE, TIMEFRAMES, MAX_MSG_LEN, ALLOWED_USERS_FILE
 from utils import ensure_file_exists
 
-USER_FILE = "allowed_users.txt"
+USER_FILE = ALLOWED_USERS_FILE
 file_lock = threading.Lock()
 
 def safe_write_user(user_id):

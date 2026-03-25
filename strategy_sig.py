@@ -1,8 +1,12 @@
 import logging
 import numpy as np
 import os
-from config import DC_PERIOD, MA_FAST, MA_MID, MA_SLOW, MA_LONG
+from config import DC_PERIOD, MA_FAST, MA_MID, MA_SLOW, MA_LONG, TMP_DIR
 from exchange_utils import get_turtle_data
+
+
+def get_can_biao_xiu_state_path(symbol_short):
+    return os.path.join(TMP_DIR, f"last_can_biao_xiu_state_{symbol_short}.txt")
 
 def calculate_indicators(df):
     df['highest'] = df['high'].rolling(DC_PERIOD).max()
@@ -183,15 +187,16 @@ def find_can_biao_xiu(df):
         return None, None, None
 
 def get_last_can_signal(symbol_short):
-    fname = f"tmp/last_can_biao_xiu_state_{symbol_short}.txt"
+    fname = get_can_biao_xiu_state_path(symbol_short)
     if os.path.exists(fname):
         with open(fname, "r") as f:
             return f.read().strip()
     return None
 
+
 def set_last_can_signal(symbol_short, signal_state):
     """保存参标修信号状态（包含can_time,biao_time,xiu_time）"""
-    fname = f"tmp/last_can_biao_xiu_state_{symbol_short}.txt"
+    fname = get_can_biao_xiu_state_path(symbol_short)
     with open(fname, "w") as f:
         f.write(str(signal_state))
 

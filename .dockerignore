@@ -4,6 +4,11 @@ __pycache__/
 *.pyd
 *.log
 *.sqlite3
+.env
+data/
+allowed_users.txt
+user_settings.json
+.git
 .git/
 .gitignore
 .vscode/

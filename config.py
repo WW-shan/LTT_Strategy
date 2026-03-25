@@ -1,5 +1,13 @@
 import os
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_DEFAULT_DATA_DIR = os.path.join(BASE_DIR, 'data')
+DATA_DIR = os.getenv('DATA_DIR', _DEFAULT_DATA_DIR)
+TMP_DIR = os.path.join(DATA_DIR, 'tmp')
+ALLOWED_USERS_FILE = os.path.join(DATA_DIR, 'allowed_users.txt')
+USER_SETTINGS_FILE = os.path.join(DATA_DIR, 'user_settings.json')
+LOG_FILE = os.path.join(DATA_DIR, 'strategy.log')
+
 LOGLEVEL = os.getenv('LOGLEVEL', 'INFO').upper()
 TG_BOT_TOKEN = os.getenv('TG_BOT_TOKEN', '')
 TG_CHAT_ID = os.getenv('TG_CHAT_ID', '')
@@ -13,8 +21,7 @@ MA_SLOW = 20
 MA_LONG = 200
 MAX_MSG_LEN = 4096
 SUBSCRIBE_PASSWORD = os.getenv('SUBSCRIBE_PASSWORD', '')
-USER_SETTINGS_FILE = "user_settings.json"
 DEFAULT_USER_SETTINGS = {
-    "enabled_timeframes": ["1h", "4h", "1d"],  # 默认全部启用
-    "enabled_signals": ["turtle_buy", "turtle_sell", "can_biao_xiu", "five_down"]
+    "enabled_timeframes": ["1h", "4h", "1d"],
+    "enabled_signals": ["turtle_buy", "turtle_sell", "can_biao_xiu", "five_down"],
 }

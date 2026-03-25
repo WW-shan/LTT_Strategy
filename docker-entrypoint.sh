@@ -1,27 +1,21 @@
 #!/bin/sh
 set -eu
 
-required_vars="TG_BOT_TOKEN TG_CHAT_ID SUBSCRIBE_PASSWORD"
+require_env() {
+    var_name="$1"
+    var_value="$2"
 
-for var in $required_vars; do
-    eval "value=\${$var:-}"
-    if [ -z "$value" ]; then
-        echo "[startup-check] Missing required environment variable: $var" >&2
+    if [ -z "$var_value" ]; then
+        echo "[startup-check] Missing required environment variable: $var_name" >&2
         exit 1
     fi
-done
+}
 
-mkdir -p /app/data
+require_env "TG_BOT_TOKEN" "${TG_BOT_TOKEN:-}"
+require_env "TG_CHAT_ID" "${TG_CHAT_ID:-}"
+require_env "SUBSCRIBE_PASSWORD" "${SUBSCRIBE_PASSWORD:-}"
 
-if [ ! -f /app/data/allowed_users.txt ]; then
-    : > /app/data/allowed_users.txt
-fi
-
-if [ ! -f /app/data/user_settings.json ]; then
-    printf '{}' > /app/data/user_settings.json
-fi
-
-ln -sf /app/data/allowed_users.txt /app/allowed_users.txt
-ln -sf /app/data/user_settings.json /app/user_settings.json
+DATA_DIR="${DATA_DIR:-/app/data}"
+mkdir -p "$DATA_DIR" "$DATA_DIR/tmp"
 
 exec python main.py

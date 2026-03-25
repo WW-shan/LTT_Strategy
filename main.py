@@ -3,31 +3,42 @@ import schedule
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
-from config import LOGLEVEL, TIMEFRAMES, MAX_WORKERS, DC_PERIOD, SYMBOLS, MA_LONG, USER_SETTINGS_FILE
+from config import (
+    ALLOWED_USERS_FILE,
+    BASE_DIR,
+    DATA_DIR,
+    DC_PERIOD,
+    LOGLEVEL,
+    LOG_FILE,
+    MA_LONG,
+    MAX_WORKERS,
+    SYMBOLS,
+    TIMEFRAMES,
+    TMP_DIR,
+    USER_SETTINGS_FILE,
+)
 from exchange_utils import get_data, get_all_usdt_swap_symbols, warmup_connection
 from strategy_sig import check_signal, check_turtle_signal, check_can_biao_xiu_signal
 from notifier import monitor_new_users, send_telegram_message, set_bot_commands, rsi6_summary, handle_signals
-from utils import ensure_dir_exists, ensure_file_exists
+from utils import prepare_runtime_state
 
-logging.basicConfig(
-    level=getattr(logging, LOGLEVEL),
-    format="%(asctime)s %(levelname)s %(message)s",
-    handlers=[
-        logging.FileHandler("strategy.log"),
-        logging.StreamHandler()
-    ]
-)
 
-if __name__ == "__main__":
-    ensure_dir_exists("tmp")
-    ensure_file_exists("allowed_users.txt")
-    ensure_file_exists(USER_SETTINGS_FILE)
-    threading.Thread(target=monitor_new_users, daemon=True).start()
+def configure_logging():
+    logging.basicConfig(
+        level=getattr(logging, LOGLEVEL),
+        format="%(asctime)s %(levelname)s %(message)s",
+        handlers=[
+            logging.FileHandler(LOG_FILE),
+            logging.StreamHandler(),
+        ],
+        force=True,
+    )
+
 
 def job():
     # 预热连接，特别是为了避免主要币种数据获取失败
     warmup_connection()
-    
+
     all_symbols = get_all_usdt_swap_symbols()
     rsi6_signals = []
 
@@ -44,6 +55,8 @@ def job():
         ]
 
         for future in as_completed(futures):
+            symbol = "UNKNOWN"
+            timeframe = "UNKNOWN"
             try:
                 symbol, timeframe, df = future.result()
                 if df.empty:
@@ -72,11 +85,31 @@ def job():
     if rsi6_signals:
         rsi6_summary(rsi6_signals)
 
-set_bot_commands()
-logging.info("策略开始")
-send_telegram_message("策略开始")
-schedule.every(60).minutes.do(job)
-job()
-while True:
-    schedule.run_pending()
-    time.sleep(0.1)
+
+def main(run_loop=True):
+    prepare_runtime_state(
+        data_dir=DATA_DIR,
+        tmp_dir=TMP_DIR,
+        allowed_users_file=ALLOWED_USERS_FILE,
+        user_settings_file=USER_SETTINGS_FILE,
+        log_file=LOG_FILE,
+        legacy_base_dir=BASE_DIR,
+    )
+    configure_logging()
+    threading.Thread(target=monitor_new_users, daemon=True).start()
+    set_bot_commands()
+    logging.info("策略开始")
+    send_telegram_message("策略开始")
+    schedule.every(60).minutes.do(job)
+    job()
+
+    if not run_loop:
+        return
+
+    while True:
+        schedule.run_pending()
+        time.sleep(0.1)
+
+
+if __name__ == "__main__":
+    main()
