@@ -13,5 +13,6 @@ services:
       SUBSCRIBE_PASSWORD: ${SUBSCRIBE_PASSWORD:-}
       LOGLEVEL: ${LOGLEVEL:-INFO}
       MAX_WORKERS: ${MAX_WORKERS:-8}
+      DATA_DIR: /app/data
     volumes:
       - ./data:/app/data
